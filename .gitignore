@@ -7,3 +7,10 @@
 *.ptx
 *.cubin
 *.fatbin
+# Eclipse
+*/Debug/
+*.cproject
+RemoteSystemsTempFiles
+*.metadata
+*.project
+*.settings
