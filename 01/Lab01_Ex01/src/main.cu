@@ -2,14 +2,20 @@
 #include <stdint.h>
 #include <stdlib.h> 
 
-#define SIZE 1000
+// CUDA runtime
+#include <cuda_runtime.h>
+
+
+
+#define SIZE 100000000
+#define THREADS_PER_BLOCK 1024
 
 // Convert and mod
 __global__ void add_kernel(uint32_t *d_c, uint32_t *d_a, uint32_t *d_b) {   
-   uint32_t tid = threadIdx.x;
-
-   d_c[tid] = d_a[tid] + d_b[tid];
-//   printf("%u ", d_c[tid]);
+//  compute index = thread index in a block + block index * number of threads per block
+	uint32_t idx = threadIdx.x + blockIdx.x * blockDim.x;
+	// if SIZE mod THREADS PER BLOCK != 0 --> some index will not be available as one more block is used
+	if(idx <= SIZE) d_c[idx] = d_a[idx] + d_b[idx];
 }
 
 int main(int argc, char* argv[]) {
@@ -33,11 +39,12 @@ int main(int argc, char* argv[]) {
     cudaMemcpy(d_a, h_a, SIZE * sizeof(uint32_t), cudaMemcpyHostToDevice);  
     cudaMemcpy(d_b, h_b, SIZE * sizeof(uint32_t), cudaMemcpyHostToDevice);     
 
-    add_kernel<<<1, SIZE>>>(d_c, d_a, d_b);
+//  <<< [Number of blocks], [Number of threads per block] >>>
+    add_kernel<<<(SIZE / THREADS_PER_BLOCK) + 1, THREADS_PER_BLOCK>>>(d_c, d_a, d_b);
     cudaMemcpy(h_c, d_c, SIZE * sizeof(uint32_t), cudaMemcpyDeviceToHost);  
 
     printf("\n----------\nResults CPU:\n");
-    for(i=0; i<SIZE; i++) printf("%u ", h_c[i]);
+    for(i=0; i<SIZE; i++) printf("%u: %u ",i , h_c[i]);
 
     cudaFree(h_a);    cudaFree(h_b);        cudaFree(h_c);
     cudaFree(d_a);    cudaFree(d_b);        cudaFree(d_c);    
